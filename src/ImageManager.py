@@ -250,6 +250,8 @@ class VISIONImageManager(Screen):
 		self.activityTimer.start(10)
 		self.Console = Console()
 
+		global BackupTime
+		BackupTime = 0
 		if BackupTime > 0:
 			t = localtime(BackupTime)
 			backuptext = _("Next backup: ") + strftime(_("%a %e %b  %-H:%M"), t)
@@ -531,7 +533,7 @@ class VISIONImageManager(Screen):
 				if pathExists("%s/SDAbackup" % MAINDEST) and self.multibootslot != 1:
 						self.session.open(MessageBox, _("Multiboot only able to restore this backup to MMC slot1"), MessageBox.TYPE_INFO, timeout=20)
 						print("[ImageManager] SF8008 MMC restore to SDcard failed:\n")
-						rmtree(config.imagemanager.backuplocation.getValue() + "imagebackups/imagerestore")
+						rmtree(config.imagemanager.backuplocation.getValue() + "/imagebackups/imagerestore")
 						self.close()
 				else:
 					self.keyRestore6(0)
@@ -598,7 +600,7 @@ class VISIONImageManager(Screen):
 			copyfile("/tmp/startupmount/%s" % SystemInfo["canMultiBoot"][self.multibootslot]["startupfile"].replace("boxmode=12'", "boxmode=1'"), "/tmp/startupmount/STARTUP")
 			self.session.open(TryQuitMainloop, 2)
 		else:
-			self.session.open(MessageBox, _("Multiboot error! - no STARTUP in boot partition."), MessageBox.TYPE_INFO, timeout=20)
+			rmtree(config.imagemanager.backuplocation.getValue() + "/imagebackups/imagerestore"), self.session.open(MessageBox, _("Flash on slot successful"), MessageBox.TYPE_INFO, timeout=10)
 
 	def dualBoot(self):
 		rootfs2 = False
@@ -998,7 +1000,7 @@ class ImageBackup(Screen):
 		makedirs(self.MAINDEST, 0644)
 		print("[ImageManager] Stage 1: Making kernel image.")
 		if "bin" or "uImage" in self.KERNELFILE:
-			self.command = "dd if=/dev/%s of=%s/vmlinux.bin" % (self.MTDKERNEL, self.WORKDIR)
+			self.command = "dd if=/dev/%s of=%s/kernel.bin" % (self.MTDKERNEL, self.WORKDIR)
 		else:
 			self.command = "nanddump /dev/%s -f %s/vmlinux.gz" % (self.MTDKERNEL, self.WORKDIR)
 		self.Console.ePopen(self.command, self.Stage1Complete)
@@ -1199,7 +1201,7 @@ class ImageBackup(Screen):
 				f.write('<Part Sel="1" PartitionName="logo" FlashType="emmc" FileSystem="none" Start="10M" Length="4M" SelectFile="logo.img"/>\n')
 				f.write('<Part Sel="1" PartitionName="deviceinfo" FlashType="emmc" FileSystem="none" Start="14M" Length="4M" SelectFile="deviceinfo.bin"/>\n')
 				f.write('<Part Sel="1" PartitionName="loader" FlashType="emmc" FileSystem="none" Start="26M" Length="32M" SelectFile="apploader.bin"/>\n')
-				f.write('<Part Sel="1" PartitionName="kernel" FlashType="emmc" FileSystem="none" Start="66M" Length="32M" SelectFile="vmlinux.bin"/>\n')
+				f.write('<Part Sel="1" PartitionName="kernel" FlashType="emmc" FileSystem="none" Start="66M" Length="32M" SelectFile="kernel.bin"/>\n')
 				f.write('<Part Sel="1" PartitionName="rootfs" FlashType="emmc" FileSystem="ext3/4" Start="98M" Length="7000M" SelectFile="rootfs.ext4"/>\n')
 				f.write('</Partition_Info>\n')
 
@@ -1265,8 +1267,8 @@ class ImageBackup(Screen):
 			if fileExists("/usr/share/apploader.bin"):
 				system("cp -f /usr/share/apploader.bin %s/apploader.bin" % self.MAINDEST2)
 
-		if "bin" or "uImage" in self.KERNELFILE and path.exists("%s/vmlinux.bin" % self.WORKDIR):
-			move("%s/vmlinux.bin" % self.WORKDIR, "%s/%s" % (self.MAINDEST, self.KERNELFILE))
+		if "bin" or "uImage" in self.KERNELFILE and path.exists("%s/kernel.bin" % self.WORKDIR):
+			move("%s/kernel.bin" % self.WORKDIR, "%s/%s" % (self.MAINDEST, self.KERNELFILE))
 		else:
 			move("%s/vmlinux.gz" % self.WORKDIR, "%s/%s" % (self.MAINDEST, self.KERNELFILE))
 
